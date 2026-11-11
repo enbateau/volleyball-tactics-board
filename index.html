@@ -1,0 +1,1573 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>9人制バレー 戦術ボード v0.8</title>
+    
+    <style>:root{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans JP',sans-serif;color:#e8eef6;background:#101b2b}*{box-sizing:border-box}body{margin:0}header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:#192b42;flex-wrap:wrap}h1{font-size:22px;margin:0}.tools{display:flex;flex-wrap:wrap;gap:5px;padding:9px;background:#23374e}button,select,input{font:inherit}button,select{background:#344e69;color:white;border:1px solid #55718e;border-radius:7px;padding:11px 13px;min-height:44px;font-size:16px;cursor:pointer}button.active{background:#1581c4;border-color:#8ed4ff}button:disabled{opacity:.4}.layout{display:grid;grid-template-columns:minmax(0,1fr) 185px;gap:5px;padding:5px}.stage{background:#b78350;border-radius:9px;overflow:hidden;min-width:0;touch-action:none}svg{width:100%;height:calc(100dvh - 126px);min-height:490px;display:block;touch-action:none}.side{background:#192b42;padding:8px;border-radius:9px;display:flex;flex-direction:column;gap:9px}.side h2{font-size:19px;margin:3px 0}.side input{background:#102239;color:white;border:1px solid #56708c;border-radius:5px;padding:11px;font-size:17px;width:100%}.scene{display:flex;gap:5px}.scene button:first-child{flex:1;text-align:left}.hint{font-size:15px;color:#bed0e0;line-height:1.6}.ball-piece{cursor:grab}.ball-piece circle{stroke:#fff;stroke-width:2}.player{cursor:grab}.player text{pointer-events:none;font-weight:800;fill:white;paint-order:stroke;stroke:#182538;stroke-width:.8px;font-size:27px;text-anchor:middle;dominant-baseline:central}.player circle{stroke:white;stroke-width:3}.player.selected circle{stroke:#ffe75a;stroke-width:3.5}.draw-path{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.bench-label{font-size:19px;fill:#fff;font-weight:bold}.zones{pointer-events:none}.zones line{stroke:#fff;stroke-width:2;stroke-dasharray:9 7;opacity:.85}.zones text{font-size:36px;font-weight:800;fill:#fff;stroke:#26384a;stroke-width:3px;paint-order:stroke;text-anchor:middle;dominant-baseline:middle}.courtline{stroke:#fff;stroke-width:2;fill:none;pointer-events:none}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:block}.side>*{margin-bottom:8px}.side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.side h2,.side .hint:last-child,#scenes{grid-column:1/-1}.side input{font-size:20px}.tools{padding:5px;gap:4px}.tools button,.tools select{padding:7px 9px;min-height:39px;font-size:16px}header{padding:5px 8px}header h1{font-size:18px}header button{padding:6px 9px;min-height:38px}svg{height:calc(100dvh - 145px);min-height:470px}header{font-size:13px}}.stage{position:relative}.fullscreen-controls{display:none;position:absolute;top:8px;right:8px;z-index:5;gap:6px;background:#14263be8;padding:6px;border-radius:9px}.fullscreen-controls button,.fullscreen-controls select{font-size:17px;min-height:44px}.layout.board-expanded{display:block;padding:0}.layout.board-expanded .side{display:none}.layout.board-expanded .stage{position:fixed;inset:0;z-index:1000;border-radius:0}.layout.board-expanded svg{height:100dvh;min-height:0;width:100vw}
+    
+    
+    .layout.board-expanded .fullscreen-controls{
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        position:fixed;
+        top:50%;
+        right:8px;
+        transform:translateY(-50%);
+        z-index:1001;
+        gap:8px;
+        padding:8px;
+        background:rgba(20,38,59,0.82);
+        border:1px solid #647d91;
+        border-radius:12px;
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
+    }
+    
+    .layout.board-expanded .fullscreen-controls button,
+    .layout.board-expanded .fullscreen-controls select{
+        width:48px;
+        min-width:48px;
+        min-height:48px;
+        padding:4px;
+        font-size:12px;
+    }
+    
+    
+    body.expanded{overflow:hidden}
+    
+    /* サーブ順・交代シート */
+    .serve-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(0,0,0,.82);
+        overflow-y: auto;
+        padding: 12px;
+    }
+    
+    .serve-panel {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 16px;
+        background: #20252b;
+        color: #fff;
+        border-radius: 12px;
+    }
+    
+    .serve-header,
+    .serve-next,
+    .serve-history-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    
+    .serve-header h2 {
+        margin: 0;
+        font-size: 20px;
+    }
+    
+    .serve-next {
+        margin: 14px 0;
+        padding: 12px;
+        background: #303943;
+        border-radius: 9px;
+    }
+    
+    .serve-caption {
+        color: #c4cbd2;
+        font-size: 12px;
+    }
+    
+    .serve-next-player {
+        font-size: 21px;
+        font-weight: 800;
+        margin-top: 3px;
+    }
+    
+    .serve-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3px;
+    }
+    
+    .serve-slot {
+        display: grid;
+        grid-template-columns: 32px 44px minmax(0,1fr) minmax(120px,190px);
+        align-items: stretch;
+        gap: 6px;
+        padding: 4px;
+        background: #303943;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        min-height: 0;
+    }
+    
+    .serve-slot.next {
+        border-color: #ffe45b;
+        background: #3a3a28;
+    }
+    
+    .serve-number {
+        font-size: 32px;
+        font-weight: 800;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+        margin: 0;
+        padding: 2px 0;
+    }
+    
+    .serve-player {
+        font-size: 32px;
+        font-weight: 700;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        line-height: 1.2;
+        margin: 0;
+        padding: 2px 0;
+    }
+    
+    .serve-jersey {
+        flex: 0 0 auto;
+        min-width: 3em;
+        text-align: center;
+        background: #263e59;
+        color: #ffffff;
+        border-radius: 6px;
+        padding: 4px 6px;
+        font-size: 26px;
+    }
+    
+    .serve-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    
+    .serve-slot select {
+        width: 100%;
+        min-width: 0;
+        font-size: 26px;
+        padding: 5px 8px;
+        min-height: 0;
+        line-height: 1.2;
+    }
+    
+    .serve-section {
+        margin-top: 18px;
+    }
+    
+    .serve-section h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+    }
+    
+    .serve-bench-list,
+    .serve-history-list {
+        font-size: 13px;
+        line-height: 1.7;
+        color: #d5dbe1;
+    }
+    
+    .serve-history-item {
+        padding: 5px 0;
+        border-bottom: 1px solid #454d56;
+    }
+    
+    @media (max-width: 650px) {
+        .serve-panel {
+            padding: 10px;
+        }
+        
+        .serve-slot {
+            grid-template-columns: 32px 42px minmax(0,1fr) minmax(92px,38%);
+            gap: 6px;
+            padding: 7px;
+        }
+        
+        .serve-player {
+            font-size: 32px;
+        }
+        
+        .serve-slot select {
+            font-size: 12px;
+            padding: 5px 3px;
+        }
+        
+        .serve-next {
+            align-items: flex-start;
+        }
+        
+        .serve-next-player {
+            font-size: 18px;
+        }
+    }
+    /* サーブ順のドラッグ操作 */
+    .serve-slot {
+        position: relative;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    .serve-drag-handle {
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        font-size: 28px;
+        padding: 2px;
+        line-height: 1;
+        border: none;
+        background: transparent;
+        color: #777;
+        min-width: 0;
+        min-height: 0;
+    }
+    
+    .serve-slot.dragging {
+        opacity: 0.4;
+    }
+    
+    .serve-slot.drag-over {
+        outline: 2px solid #2684ff;
+        outline-offset: -2px;
+    }/* サーブ順シート 大きめ表示 */
+    .serve-panel {
+        font-size: 26px;
+    }
+    
+    .serve-header h2 {
+        font-size: 36px;
+    }
+    
+    .serve-next {
+        font-size: 28px;
+    }
+    
+    .serve-next-player {
+        font-size: 38px;
+        font-weight: bold;
+    }
+    
+    .serve-caption {
+        font-size: 24px;
+    }
+    
+    .serve-slot {
+        font-size: 30px;
+        min-height: 70px;
+    }
+    
+    .serve-number {
+        font-size: 32px;
+        font-weight: bold;
+    }
+    
+    .serve-player {
+        font-size: 32px;
+        font-weight: bold;
+    }
+    
+    
+    
+    .serve-section h3 {
+        font-size: 32px;
+    }
+    
+    #serveBench,
+    #serveHistory {
+        font-size: 24px;
+    }
+    
+    #serveCloseBtn,
+    #serveAdvanceBtn,
+    #serveClearLogBtn {
+        font-size: 26px;
+        padding: 14px 20px;
+    }
+    
+    
+    
+    
+    /* ===== Premium Sports Analytics ===== */
+    
+    body {
+        background: linear-gradient(135deg, #111b29 0%, #26394b 55%, #111923 100%);
+        color: #eaf1f7;
+    }
+    
+    header {
+        background: linear-gradient(110deg, #18283a 0%, #293e53 55%, #1b2b3e 100%);
+        border-bottom: 1px solid #40576c;
+    }
+    
+    .tools {
+        background: linear-gradient(100deg, #1c2d40 0%, #30465b 50%, #1b2b3d 100%);
+        border-bottom: 1px solid #40576c;
+    }
+        
+        /* 全面表示時：右側の縦型ツールバー */
+        .layout.board-expanded .tools{
+          position:fixed;
+          top:50%;
+          right:8px;
+          transform:translateY(-50%);
+          z-index:1002;
+
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          gap:6px;
+
+          width:62px;
+          max-height:calc(100dvh - 24px);
+          overflow-y:auto;
+
+          padding:8px 5px;
+          border:1px solid #647d91;
+          border-radius:12px;
+          background:rgba(20,38,59,0.86);
+          box-shadow:0 4px 16px #0006;
+
+          backdrop-filter:blur(8px);
+          -webkit-backdrop-filter:blur(8px);
+        }
+
+        .layout.board-expanded .tools button,
+        .layout.board-expanded .tools select{
+          width:48px;
+          min-width:48px;
+          height:48px;
+          min-height:48px;
+          padding:4px;
+          font-size:22px;
+          border-radius:8px;
+        }
+
+        /* 全面表示時は文字を隠してアイコン中心にする */
+        .layout.board-expanded .tools button{
+          font-size:0;
+        }
+
+        .layout.board-expanded .tools button::first-letter{
+          font-size:22px;
+        }
+
+    
+    button, select {
+        background: linear-gradient(145deg, #405a73 0%, #2b4057 100%);
+        border: 1px solid #607b94;
+        box-shadow: 0 2px 5px #0004;
+        transition: background .15s, border-color .15s;
+    }
+    
+    button.active {
+        background: linear-gradient(135deg, #35a9ec 0%, #1768a9 100%);
+        border-color: #9cddff;
+        box-shadow: 0 0 9px #35a9ec55;
+    }
+    
+    .side {
+        background: linear-gradient(145deg, #26394c 0%, #172637 100%);
+        border: 1px solid #40566b;
+    }
+    
+    .side input {
+        background: linear-gradient(145deg, #142437, #1b3045);
+        border-color: #536e86;
+    }
+    
+    .stage {
+        background: #26394b;
+        border: 1px solid #647d91;
+        box-shadow: 0 5px 18px #0005;
+    }
+    
+    .courtline {
+        stroke: #edf4f8;
+        stroke-width: 2.4;
+        fill: none;
+    }
+    
+    .zones line {
+        stroke: #f0f6fa;
+        opacity: .68;
+    }
+    
+    .zones text {
+        fill: #f2f7fa;
+        stroke: #344c60;
+        opacity: .9;
+    }
+    
+    .player.selected circle {
+        stroke: #fff1a0;
+        stroke-width: 4;
+        filter: url(#selectedGlow);
+    }
+    
+    .player circle {
+        stroke: #f5f9fc;
+        stroke-width: 2.5;
+    }
+    
+    .player text {
+        fill: white;
+        stroke: #17283a;
+        stroke-width: 1.2px;
+    }
+    
+    .fullscreen-controls {
+        background: linear-gradient(135deg, #1b3045ee, #304a61ee);
+        border: 1px solid #66839a;
+        box-shadow: 0 3px 12px #0005;
+    }
+    .court-surface {
+        fill: url(#courtGradient);
+        stroke: #edf4f8;
+        stroke-width: 2.4;
+    }
+        
+        body.expanded .fullscreen-controls{display:none!important}
+        
+        /* 全画面時：ツールバーを右端に縦配置 */
+        body.expanded .tools{
+          position:fixed;
+          top:50%;
+          right:8px;
+          transform:translateY(-50%);
+          z-index:1002;
+
+          display:flex;
+          flex-direction:column;
+          flex-wrap:nowrap;
+          align-items:center;
+          gap:6px;
+
+          width:60px;
+          max-height:calc(100dvh - 24px);
+          overflow-y:auto;
+
+          padding:8px 5px;
+          border:1px solid #647d91;
+          border-radius:12px;
+          background:rgba(20,38,59,.94);
+          box-shadow:0 4px 16px rgba(0,0,0,.3);
+        }
+
+        body.expanded .tools button,
+        body.expanded .tools select{
+          width:48px;
+          min-width:48px;
+          min-height:48px;
+          padding:4px;
+          font-size:14px;
+        }
+        
+        /* 全画面時：ボタンをアイコン表示にする */
+        body.expanded .tools button{
+          font-size:0;
+          line-height:1;
+        }
+
+        body.expanded .tools button::before{
+          font-size:25px;
+          display:block;
+          line-height:1.2;
+        }
+
+        /* 各ツールのアイコン */
+        body.expanded .tools [data-tool="move"]::before{
+          content:"☝";
+        }
+        body.expanded .tools [data-tool="pen"]::before{
+          content:"✎";
+        }
+        body.expanded .tools [data-tool="arrow"]::before{
+          content:"↗";
+        }
+        body.expanded .tools [data-tool="erase"]::before{
+          content:"⌫";
+        }
+        body.expanded .tools #undoBtn::before{
+          content:"↶";
+        }
+        body.expanded .tools #clearBtn::before{
+          content:"▤";
+        }
+        body.expanded .tools #hidePlayersBtn::before{
+          content:"◉";
+        }
+        body.expanded .tools #zonesBtn::before{
+          content:"▦";
+        }
+        body.expanded .tools #expandBtn::before{
+          content:"⛶";
+        }
+        body.expanded .tools #serveBtn::before{
+          content:"☷";
+        }
+        
+        /* 通常画面と全画面でボタン表示を切り替える */
+        body:not(.expanded) .tools #expandBtn{
+          font-size:14px;
+        }
+
+        body:not(.expanded) .tools #expandBtn::before{
+          content:none;
+        }
+
+        body.expanded .tools #expandBtn{
+          font-size:0;
+        }
+
+        body.expanded .tools #expandBtn::before{
+          content:"⛶";
+          font-size:25px;
+          text-shadow:0 0 1px #fff;
+        }
+        /* 全画面ツールバー：アイコンサイズ統一 */
+        body.expanded .tools button::before{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          width:28px;
+          height:28px;
+          font-size:23px;
+          line-height:1;
+          margin:auto;
+        }
+
+        body.expanded .tools button{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        }
+
+        /* セレクトボックスも中央揃え */
+        body.expanded .tools select{
+          text-align:center;
+          text-align-last:center;
+        }
+        /* 全画面時：表示範囲とペン色のアイコンを拡大 */
+        body.expanded .tools #view,
+        body.expanded .tools #color{
+          font-size:23px;
+          text-align:center;
+          text-align-last:center;
+        }
+        
+        /* 全画面時：セレクトボックスをボタンと同じ正方形にする */
+        body.expanded .tools select{
+          box-sizing:border-box;
+          width:48px;
+          min-width:48px;
+          height:48px;
+          min-height:48px;
+          padding:0;
+          margin:0;
+
+          display:flex;
+          align-items:center;
+          justify-content:center;
+
+          text-align:center;
+          text-align-last:center;
+          font-size:20px;
+          line-height:1;
+
+          overflow:hidden;
+        }
+
+        /* セレクトボックスの選択内容 */
+        body.expanded .tools #view{
+          appearance:none;
+          -webkit-appearance:none;
+          background-image:none;
+        }
+        
+        /* 通常表示ではviewとcolorを元のサイズ・表示に戻す */
+        body:not(.expanded) .tools #view,
+        body:not(.expanded) .tools #color{
+          width:auto;
+          min-width:0;
+          height:auto;
+          min-height:39px;
+          padding:7px 9px;
+          font-size:16px;
+          text-align:left;
+          text-align-last:auto;
+          appearance:auto;
+          -webkit-appearance:auto;
+          background-image:initial;
+        }
+        
+        /* 通常表示では元の文字付きセレクトボックス */
+        body:not(.expanded) .tools #view,
+        body:not(.expanded) .tools #color{
+          width:auto;
+          min-width:initial;
+          height:auto;
+          min-height:44px;
+          padding:7px 9px;
+          font-size:16px;
+          text-align:left;
+          text-align-last:left;
+        }
+        
+        /* 全画面時：セレクトボックスの表示を中央に */
+        body.expanded .tools #view,
+        body.expanded .tools #color{
+          width:48px;
+          min-width:48px;
+          height:48px;
+          min-height:48px;
+          padding:0;
+          font-size:20px;
+          text-align:center;
+          text-align-last:center;
+          appearance:none;
+          -webkit-appearance:none;
+          background-image:none;
+        }
+</style>
+</head><body><header><h1>🏐 9人制バレー 戦術ボード</h1><div><button id="saveBtn">シーン保存</button> <button id="exportBtn">PNG出力</button> <button id="resetBtn">初期配置</button></div></header>
+      
+      <nav class="tools"><button data-tool="move" class="active">☝ 選択・移動</button><button data-tool="pen">✎ ペン</button><button data-tool="arrow">↗ 矢印</button><button data-tool="erase">消しゴム</button><button id="undoBtn">↶ 戻す</button><button id="clearBtn">描画消去</button><button id="hidePlayersBtn" aria-pressed="false">👁 コート選手を隠す</button><button id="zonesBtn" aria-pressed="false">▦ ゾーン表示</button>
+      <button id="expandBtn">⛶ コート全画面</button>
+          
+          <select id="view">
+            <option value="full">全面表示</option>
+            <option value="home">自陣・半面</option>
+            <option value="away">相手陣・半面</option>
+          </select>
+
+          <select id="color">
+            <option value="#fff447">黄ペン</option>
+            <option value="#ffffff">白ペン</option>
+            <option value="#111827">黒ペン</option>
+            <option value="#ef4444">赤ペン</option>
+            <option value="#2563eb">青ペン</option>
+          </select>
+          <button id="serveBtn">☷ サーブ順</button></nav>
+      
+      <div class="layout"><div class="stage"><div class="fullscreen-controls"><select id="fullView" aria-label="表示範囲"><option value="full">全面表示</option><option value="home">自陣・半面</option><option value="away">相手陣・半面</option></select><button id="fullZonesBtn">▦ ゾーン表示</button><button id="fullHideBtn">👁 選手を隠す</button><button id="exitFullBtn">✕ 戻る</button></div>
+          
+          <svg id="board" viewBox="0 0 900 1000" xmlns="http://www.w3.org/2000/svg">
+
+      <defs>
+        <!-- コート外の床 -->
+        <linearGradient id="floorGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#172536"/>
+          <stop offset="48%" stop-color="#26394b"/>
+          <stop offset="100%" stop-color="#111c2a"/>
+        </linearGradient>
+
+        <!-- コート面 -->
+        <linearGradient id="courtGradient" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stop-color="#347c75"/>
+          <stop offset="48%" stop-color="#4b9b8e"/>
+          <stop offset="100%" stop-color="#28665f"/>
+        </linearGradient>
+
+        <!-- コート中央の柔らかな光 -->
+        <radialGradient id="courtGlow">
+          <stop offset="0%" stop-color="#b0ead9" stop-opacity=".20"/>
+          <stop offset="100%" stop-color="#b0ead9" stop-opacity="0"/>
+        </radialGradient>
+        <!-- 選手駒 -->
+        <linearGradient id="playerBlue" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#69c5ff"/>
+          <stop offset="100%" stop-color="#1265b4"/>
+        </linearGradient>
+
+        <linearGradient id="playerRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ff9296"/>
+          <stop offset="100%" stop-color="#bd3047"/>
+        </linearGradient>
+
+        <linearGradient id="playerYellow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fff19a"/>
+          <stop offset="100%" stop-color="#e6ad27"/>
+        </linearGradient>
+
+        <!-- ボール -->
+        <radialGradient id="ballGradient" cx="35%" cy="28%" r="75%">
+          <stop offset="0%" stop-color="#fff8b0"/>
+          <stop offset="65%" stop-color="#f3d64c"/>
+          <stop offset="100%" stop-color="#d7a91d"/>
+        </radialGradient>
+
+        <!-- ネット -->
+        <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8195a5"/>
+          <stop offset="100%" stop-color="#26394b"/>
+        </linearGradient>
+
+        <filter id="selectedGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+
+        <marker id="arrowhead"
+          markerWidth="9" markerHeight="9"
+          refX="7" refY="4"
+          orient="auto"
+          markerUnits="userSpaceOnUse">
+          <path d="M0 0L8 4L0 8Z" fill="context-stroke"/>
+        </marker>
+      </defs>
+
+      <g id="background"></g><g id="zones" class="zones"></g><g id="drawings"></g><g id="players"></g><g id="ballLayer"></g><g id="preview"></g></svg></div><aside class="side"><h2>選手編集</h2><div class="hint">選手駒をタップして選択。背番号・名前を変更できます。</div><label>選手名<input id="playerName" maxlength="24" placeholder="任意" disabled></label><label>背番号<input id="number" maxlength="3" placeholder="選手を選択" disabled></label><label>選手駒の色<select id="playerColor" disabled style="width:100%"><option value="blue">青</option><option value="red">赤</option><option value="yellow">黄</option></select></label><div id="selection" class="hint">未選択</div><h2>保存したシーン</h2><div id="scenes"></div><div class="hint">「ゾーン表示」で各陣を3×3に区分します（Z1〜Z9は仮の識別番号）。全画面でも切り替えられます。青・黄のボール駒はドラッグで自由に移動できます（選手一括非表示の対象外）。各チーム最大15名。選手を選んで青・赤・黄に変更できます。各9名をコートに、6名を控えエリアに配置しています。控えも自由にドラッグできます。画面内の位置は全面・半面切替でも維持されます。端末内に自動保存します。</div></aside></div><div id="serveSheet" class="serve-overlay" style="display:none">
+    <div class="serve-panel">
+      <div class="serve-header">
+        <h2>サーブ順・交代シート</h2>
+        <button id="serveCloseBtn">閉じる ×</button>
+      </div>
+
+      <div class="serve-next">
+        <div>
+          <div class="serve-caption">次のサーバー</div>
+          <div id="serveNextPlayer" class="serve-next-player">---</div>
+        </div>
+        <button id="serveAdvanceBtn">サーブ順を次へ →</button>
+      </div>
+
+      <div id="serveRows" class="serve-grid"></div>
+
+      <div class="serve-section">
+        <h3>控え選手</h3>
+        <div id="serveBench"></div>
+      </div>
+
+      <div class="serve-section">
+        <div class="serve-history-header">
+          <h3>交代履歴</h3>
+          <button id="serveClearLogBtn">履歴クリア</button>
+        </div>
+        <div id="serveHistory"></div>
+      </div>
+    </div>
+  </div><script>
+(()=>{'use strict';const svg=document.getElementById('board'),bg=document.getElementById('background'),dg=document.getElementById('drawings'),pg=document.getElementById('players'),pv=document.getElementById('preview');const ballLayer=document.getElementById('ballLayer'),zoneLayer=document.getElementById('zones');const NS='http://www.w3.org/2000/svg';const $=id=>document.getElementById(id);
+
+    // 全面表示時のコート縦方向の調整
+    const courtY = y => {
+      if(view !== 'full') return y;
+
+      // 相手コート：85％に圧縮
+      if(y <= 500){
+        return 470 + (y - 500) * 0.85;
+      }
+
+      // 自陣コート：下端の位置を維持して少し拡張
+      return 470 + (y - 500) * (440 / 410);
+    };
+
+    // 表示座標から元の座標へ戻す
+    const inverseCourtY = y => {
+      if(view !== 'full') return y;
+
+      if(y <= 470){
+        return 500 + (y - 470) / 0.85;
+      }
+
+      return 500 + (y - 470) * (410 / 440);
+    };
+
+    // 遠近感表示用の座標変換
+    const perspectiveScale = y => 0.62 + ((y - 90) / 820) * 0.38;
+
+    const projectPoint = (x, y) => {
+      const py = courtY(y);
+      const s = perspectiveScale(py);
+
+      return {
+        x: 450 + (x - 450) * s,
+        y: py
+      };
+    };const E=(tag,attrs={},parent)=>{let e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(parent)parent.append(e);return e};const clone=x=>JSON.parse(JSON.stringify(x));const init=()=>{let players=[];for(let team of ['home','away'])for(let i=0;i<15;i++){let x,y;if(i<9){x=260+(i%3)*190;y=team==='away'?160+Math.floor(i/3)*120:600+Math.floor(i/3)*120}else{x=240+(i-9)*80;y=team==='away'?43:957}players.push({id:team+i,team,number:String(i+1),name:'',color:team==='home'?'blue':'red',x,y})}return {players,drawings:[],ball:{x:450,y:500}}};let data;try{data=JSON.parse(localStorage.getItem('vb9-current'))||init()}catch{data=init()}if(!data.ball)data.ball={x:450,y:500};let scenes=[];try{scenes=JSON.parse(localStorage.getItem('vb9-scenes'))||[]}catch{}let tool='move',view='full',selected=null,gesture=null,history=[],hideCourtPlayers=false,showZones=false;const persist=()=>{try{localStorage.setItem('vb9-current',JSON.stringify(data))}catch(e){console.warn('保存できません',e)}};const snapshot=()=>{history.push(clone(data));if(history.length>60)history.shift()};
+    const pos = e => {
+      let pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+
+      const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+      const logicalY = inverseCourtY(q.y);
+      const s = perspectiveScale(q.y);
+
+      return {
+        x: 450 + (q.x - 450) / s,
+        y: logicalY
+      };
+    };const visible=p=>view==='full'||(view==='home'?p.y>=350:p.y<=350);
+    
+
+    function background(){
+      bg.replaceChildren();
+
+      const top = courtY(90);
+      const netY = courtY(500);
+      const bottom = courtY(910);
+
+      // コート外の床
+      E('rect',{
+        x:0,y:0,width:900,height:1000,
+        fill:'url(#floorGradient)'
+      },bg);
+      // コート本体
+      E('path',{
+          d:`M273 ${top} L627 ${top} L735 ${bottom} L165 ${bottom} Z`,
+        fill:'url(#courtGradient)',
+        stroke:'#edf4f8',
+        'stroke-width':2.4
+      },bg);
+
+      // コート中央の柔らかな光
+      E('ellipse',{
+        cx:450,cy:netY,rx:350,ry:440,
+        fill:'url(#courtGlow)'
+      },bg);
+
+      // コート外周
+      E('path',{
+          d:`M273 ${top} L627 ${top} L735 ${bottom} L165 ${bottom} Z`,
+        stroke:'#dce8f0',
+        'stroke-width':3,
+        fill:'none',
+        opacity:.95
+      },bg);
+
+      // センターライン
+      E('path',{
+        d:`M219 ${netY}H681`,
+        class:'courtline'
+      },bg);
+
+      // ===== スタイリッシュなネット =====
+
+      // 支柱はコートの外側に十分離して配置
+      const postL = 150;
+      const postR = 750;
+
+      // ネットは支柱間いっぱいに張る
+      const netL = 155;
+      const netR = 745;
+      const netTop = netY - 20;
+      const netBottom = netY + 20;
+
+      // 支柱のベース
+      E('rect',{
+        x:postL-11,y:netY+29,
+        width:22,height:9,
+        rx:4.5,
+        fill:'#26394b',
+        stroke:'#91a5b5',
+        'stroke-width':1
+      },bg);
+
+      E('rect',{
+        x:postR-11,y:netY+29,
+        width:22,height:9,
+        rx:4.5,
+        fill:'#26394b',
+        stroke:'#91a5b5',
+        'stroke-width':1
+      },bg);
+
+      // 支柱本体
+      E('rect',{
+        x:postL-4,y:netTop-4,
+        width:8,height:56,
+        rx:4,
+        fill:'url(#netGradient)',
+        stroke:'#c0d0dc',
+        'stroke-width':1
+      },bg);
+
+      E('rect',{
+        x:postR-4,y:netTop-4,
+        width:8,height:56,
+        rx:4,
+        fill:'url(#netGradient)',
+        stroke:'#c0d0dc',
+        'stroke-width':1
+      },bg);
+
+      // 支柱のハイライト
+      for(const x of [postL,postR]){
+        E('line',{
+          x1:x-1.5,y1:netTop,
+          x2:x-1.5,y2:netY+25,
+          stroke:'#e4edf3',
+          'stroke-width':1.2,
+          opacity:.65
+        },bg);
+      }
+
+      // 支柱上部の金具
+      for(const x of [postL,postR]){
+        E('rect',{
+          x:x-6,y:netTop-4,
+          width:12,height:4,
+          rx:2,
+          fill:'#d8e2e9',
+          stroke:'#71899a',
+          'stroke-width':.8
+        },bg);
+      }
+
+      // ネット本体
+      E('rect',{
+        x:netL,y:netTop,
+        width:netR-netL,
+        height:netBottom-netTop,
+        fill:'#172b35',
+        opacity:.88
+      },bg);
+
+      // ネットの縦メッシュ
+      for(let x=netL+4;x<netR;x+=8){
+        E('line',{
+          x1:x,y1:netTop+5,
+          x2:x,y2:netBottom-3,
+          stroke:'#9bb1b9',
+          'stroke-width':.65,
+          opacity:.7
+        },bg);
+      }
+
+      // ネットの横メッシュ
+      for(let y=netTop+6;y<netBottom-2;y+=6){
+        E('line',{
+          x1:netL,y1:y,
+          x2:netR,y2:y,
+          stroke:'#9bb1b9',
+          'stroke-width':.65,
+          opacity:.7
+        },bg);
+      }
+
+      // ネット上端の白いテープ
+      E('rect',{
+        x:netL,y:netTop-4,
+        width:netR-netL,
+        height:5,
+        rx:1,
+        fill:'#f4f7fa',
+        stroke:'#b9c8d2',
+        'stroke-width':.7
+      },bg);
+
+      // ネット下端の補強テープ
+      E('line',{
+        x1:netL,y1:netBottom,
+        x2:netR,y2:netBottom,
+        stroke:'#dce6ed',
+        'stroke-width':2
+      },bg);
+
+      // 上端のテンションケーブル
+      E('line',{
+        x1:postL,y1:netTop-3,
+        x2:postR,y2:netTop-3,
+        stroke:'#dce6ed',
+        'stroke-width':1.5
+      },bg);
+
+      // アンテナ
+      for(const x of [219,681]){
+        E('line',{
+          x1:x,y1:netTop-43,
+          x2:x,y2:netBottom+5,
+          stroke:'#f4f7fa',
+          'stroke-width':3.5
+        },bg);
+
+        for(let y=netTop-40;y<netBottom+5;y+=16){
+          E('line',{
+            x1:x,y1:y,
+            x2:x,y2:y+8,
+            stroke:'#e34b56',
+            'stroke-width':3.5
+          },bg);
+        }
+      }
+      // 控え表示
+      E('text',{
+        x:170,y:49,class:'bench-label',
+        fill:'#dce8f0'
+      },bg).textContent='相手 控え';
+
+      E('text',{
+        x:170,y:964,class:'bench-label',
+        fill:'#dce8f0'
+      },bg).textContent='自陣 控え';
+    }
+
+
+    function renderZones(){
+      zoneLayer.replaceChildren();
+      if(!showZones)return;
+
+      for(const [top,bottom] of [[90,500],[500,910]]){
+        const step=(bottom-top)/3;
+
+        // 縦方向のゾーン境界
+        for(let col=1;col<3;col++){
+          const p1=projectPoint(165+190*col,top);
+          const p2=projectPoint(165+190*col,bottom);
+
+          E('line',{
+            x1:p1.x,y1:p1.y,
+            x2:p2.x,y2:p2.y
+          },zoneLayer);
+        }
+
+        // 横方向のゾーン境界
+        for(let row=1;row<3;row++){
+          const y=top+step*row;
+          const p1=projectPoint(165,y);
+          const p2=projectPoint(735,y);
+
+          E('line',{
+            x1:p1.x,y1:p1.y,
+            x2:p2.x,y2:p2.y
+          },zoneLayer);
+        }
+
+        const homeNumbers=[4,3,2,7,8,9,5,6,1];
+        const awayNumbers=[1,6,5,9,8,7,2,3,4];
+
+        const subs=top===500
+          ? [['c',0.25,0.25],['b',0.75,0.25],['d',0.25,0.75],['a',0.75,0.75]]
+          : [['a',0.25,0.25],['d',0.75,0.25],['b',0.25,0.75],['c',0.75,0.75]];
+
+        for(let row=0;row<3;row++){
+          for(let col=0;col<3;col++){
+            const n=row*3+col;
+            const number=top===500?homeNumbers[n]:awayNumbers[n];
+
+            const x0=165+190*col;
+            const y0=top+step*row;
+
+            // ゾーン番号
+            const center=projectPoint(x0+95,y0+step/2);
+            const scale=perspectiveScale(center.y);
+
+            const g=E('g',{
+              transform:`translate(${center.x} ${center.y}) scale(${scale})`
+            },zoneLayer);
+
+            E('text',{
+              x:0,y:0,
+              'text-anchor':'middle',
+              'dominant-baseline':'middle',
+              style:'font-size:40px;opacity:.65'
+            },g).textContent=number;
+
+            // サブゾーン
+            for(const [label,sx,sy] of subs){
+              const p=projectPoint(x0+190*sx,y0+step*sy);
+              const s=perspectiveScale(p.y);
+
+              const sg=E('g',{
+                transform:`translate(${p.x} ${p.y}) scale(${s})`
+              },zoneLayer);
+
+              E('text',{
+                x:0,y:0,
+                'text-anchor':'middle',
+                'dominant-baseline':'middle',
+                style:'font-size:22px;opacity:.9'
+              },sg).textContent=label;
+            }
+          }
+        }
+      }
+    }
+
+function render(){background();renderZones();dg.replaceChildren();
+  
+  for(let d of data.drawings){
+    const kind=d.kind || d.type;
+
+    if(kind==='pen' && Array.isArray(d.points)){
+      const points=d.points.map(p=>{
+        const q=projectPoint(p[0],p[1]);
+        return `${q.x},${q.y}`;
+      }).join(' ');
+
+      E('polyline',{
+        points,
+        stroke:d.color,
+        'stroke-width':4,
+        class:'draw-path'
+      },dg);
+
+    }else if(
+      kind==='arrow' &&
+      Array.isArray(d.a) &&
+      Array.isArray(d.b)
+    ){
+      const a=projectPoint(d.a[0],d.a[1]);
+      const b=projectPoint(d.b[0],d.b[1]);
+
+      E('line',{
+        x1:a.x,y1:a.y,
+        x2:b.x,y2:b.y,
+        stroke:d.color,
+        'stroke-width':4,
+        'marker-end':'url(#arrowhead)',
+        class:'draw-path'
+      },dg);
+    }
+  }
+
+    
+pg.replaceChildren();ballLayer.replaceChildren();for(let p of data.players){if(hideCourtPlayers&&p.x>=165&&p.x<=735&&p.y>=90&&p.y<=910)continue;const projected=projectPoint(p.x,p.y);
+    const scale=perspectiveScale(p.y);
+
+    let g=E('g',{
+      class:'player'+(selected===p.id?' selected':''),
+      'data-id':p.id,
+      transform:`translate(${projected.x} ${projected.y}) scale(${scale})`
+    },pg);E('circle',{
+        r:34,
+        fill:({
+          blue:'url(#playerBlue)',
+          red:'url(#playerRed)',
+          yellow:'url(#playerYellow)'
+        })[p.color] || (p.team==='home'?'url(#playerBlue)':'url(#playerRed)')
+      },g);E('text',{y:1,fill:p.color==='yellow'?'#172033':'white',style:p.color==='yellow'?'fill:#172033;stroke:none':''},g).textContent=p.team==='home'?p.name:p.number;E('title',{},g).textContent=(p.team==='home'?'自チーム ':'相手チーム ')+p.number+' '+p.name}let ball=data.ball||{x:450,y:500};
+    const ballProjected=projectPoint(ball.x,ball.y);
+    const ballScale=perspectiveScale(ball.y);
+
+    let ballG=E('g',{
+      class:'ball-piece',
+      transform:`translate(${ballProjected.x} ${ballProjected.y}) scale(${ballScale})`,
+      'aria-label':'ボール駒'
+    },ballLayer);
+    E('circle',{r:31,fill:'url(#ballGradient)'},ballG);
+E('path',{d:'M-28 -10 Q-8 -30 9 -27 Q1 -10 -14 0 Q-26 7 -29 14 Z',fill:'#1765b5'},ballG);
+E('path',{d:'M12 -26 Q31 -15 29 4 Q12 2 3 13 Q-1 -5 12 -26 Z',fill:'#1765b5'},ballG);
+E('path',{d:'M-24 19 Q-4 8 6 17 Q15 24 21 22 Q4 38 -18 25 Z',fill:'#1765b5'},ballG);
+E('circle',{r:31,fill:'none',stroke:'#fff','stroke-width':2},ballG);
+E('title',{},ballG).textContent='ボール：ドラッグで移動';
+svg.setAttribute('viewBox',
+  view==='full'?'105 15 690 970':
+  view==='home'?'145 470 610 540':
+  '145 0 610 530'
+);$('selection').textContent=selected?(data.players.find(p=>p.id===selected)?.team==='home'?'自チーム':'相手チーム')+' / '+(data.players.find(p=>p.id===selected)?.name||'名前未設定'):'未選択'}
+    
+    function select(id){
+      selected=id;
+      let p=data.players.find(x=>x.id===id);
+      $('number').disabled=!p;
+      $('playerName').disabled=!p;
+      $('playerColor').disabled=!p;
+      $('playerColor').value=p?.color||(p?.team==='home'?'blue':'red');
+      $('number').value=p?.number||'';
+      $('playerName').value=p?.name||'';
+
+      render();
+
+      // 名前が未入力なら選手名欄にフォーカス
+      
+      }
+
+  svg.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;let p=pos(e),g=e.target.closest('.player'),ballTarget=e.target.closest('.ball-piece');if(tool==='move'){if(ballTarget){snapshot();gesture={kind:'ball',dx:p.x-data.ball.x,dy:p.y-data.ball.y}}else if(g){let obj=data.players.find(x=>x.id===g.dataset.id);
+      
+      select(obj.id);
+
+      if(!obj.name.trim()){
+        requestAnimationFrame(()=>{
+          $('playerName').focus();
+        });
+      }
+
+      snapshot();
+      gesture={kind:'move',id:obj.id,dx:p.x-obj.x,dy:p.y-obj.y};}else select(null)}else if(tool==='erase'){let nearest=-1,dist=25;data.drawings.forEach((d,i)=>{let pts=(d.kind||d.type)==='pen'?d.points:[d.a,d.b];for(let j=0;j<pts.length-1;j++){let a=pts[j],b=pts[j+1],vx=b[0]-a[0],vy=b[1]-a[1],t=Math.max(0,Math.min(1,((p.x-a[0])*vx+(p.y-a[1])*vy)/(vx*vx+vy*vy||1))),dd=Math.hypot(p.x-a[0]-t*vx,p.y-a[1]-t*vy);if(dd<dist){dist=dd;nearest=i}}});if(nearest>=0){snapshot();data.drawings.splice(nearest,1);persist();render()}}else{snapshot();gesture=tool==='pen'?{kind:'pen',points:[[p.x,p.y]],color:$('color').value}:{kind:'arrow',a:[p.x,p.y],b:[p.x,p.y],color:$('color').value}}if(gesture)svg.setPointerCapture(e.pointerId)});svg.addEventListener('pointermove',e=>{if(!gesture)return;let p=pos(e);if(gesture.kind==='ball'){data.ball.x=Math.max(31,Math.min(869,p.x-gesture.dx));data.ball.y=Math.max(31,Math.min(969,p.y-gesture.dy));render()}else if(gesture.kind==='move'){let obj=data.players.find(x=>x.id===gesture.id);obj.x=Math.max(25,Math.min(875,p.x-gesture.dx));obj.y=Math.max(25,Math.min(975,p.y-gesture.dy));render()}else{
+          if(gesture.kind==='pen')gesture.points.push([p.x,p.y]);else gesture.b=[p.x,p.y];pv.replaceChildren();if(gesture.kind==='pen'){
+              const points=gesture.points.map(x=>{
+                const q=projectPoint(x[0],x[1]);
+                return `${q.x},${q.y}`;
+              }).join(' ');
+
+              E('polyline',{
+                points,
+                stroke:gesture.color,
+                'stroke-width':4,
+                class:'draw-path'
+              },pv);
+
+            }else{
+              const a=projectPoint(gesture.a[0],gesture.a[1]);
+              const b=projectPoint(gesture.b[0],gesture.b[1]);
+
+              E('line',{
+                x1:a.x,y1:a.y,
+                x2:b.x,y2:b.y,
+                stroke:gesture.color,
+                'stroke-width':4,
+                'marker-end':'url(#arrowhead)',
+                class:'draw-path'
+              },pv);
+            }}});function end(){if(!gesture)return;if(gesture.kind==='pen'&&gesture.points.length>1)data.drawings.push(gesture);if(gesture.kind==='arrow'&&Math.hypot(gesture.a[0]-gesture.b[0],gesture.a[1]-gesture.b[1])>5)data.drawings.push(gesture);gesture=null;pv.replaceChildren();persist();render()}svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b))});function setView(v){view=v;$('view').value=v;$('fullView').value=v;render()}$('view').onchange=e=>setView(e.target.value);$('fullView').onchange=e=>setView(e.target.value);function syncHide(){let label=hideCourtPlayers?'👁 選手を表示':'👁 選手を隠す';$('hidePlayersBtn').textContent=hideCourtPlayers?'👁 コート選手を表示':'👁 コート選手を隠す';$('hidePlayersBtn').setAttribute('aria-pressed',String(hideCourtPlayers));$('hidePlayersBtn').classList.toggle('active',hideCourtPlayers);$('fullHideBtn').textContent=label;render()}function syncZones(){let label=showZones?'▦ ゾーンを隠す':'▦ ゾーン表示';for(let id of ['zonesBtn','fullZonesBtn']){$(id).textContent=label;$(id).classList.toggle('active',showZones);$(id).setAttribute('aria-pressed',String(showZones))}render()}$('zonesBtn').onclick=$('fullZonesBtn').onclick=()=>{showZones=!showZones;syncZones()};$('hidePlayersBtn').onclick=$('fullHideBtn').onclick=()=>{hideCourtPlayers=!hideCourtPlayers;syncHide()};
+      
+      function expand(on){
+        document.body.classList.toggle('expanded',on);
+        document.querySelector('.layout').classList.toggle('board-expanded',on);
+        $('fullView').value=view;
+
+        const viewLabels = on
+          ? ['全','自','相']
+          : ['全面表示','自陣・半面','相手陣・半面'];
+
+        [...$('view').options].forEach((option,i)=>{
+          option.textContent=viewLabels[i];
+        });
+
+        const colorLabels = on
+          ? ['🟨','⬜','⬛','🟥','🟦']
+          : ['黄ペン','白ペン','黒ペン','赤ペン','青ペン'];
+
+        [...$('color').options].forEach((option,i)=>{
+          option.textContent=colorLabels[i];
+        });
+
+        render()
+      }
+      
+      $('expandBtn').onclick=()=>{
+        const isExpanded=document.body.classList.contains('expanded');
+        expand(!isExpanded);
+      };
+      $('exitFullBtn').onclick=()=>expand(false);
+      
+      ;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('expanded'))expand(false)});$('number').oninput=e=>{let p=data.players.find(x=>x.id===selected);if(p){p.number=e.target.value;persist();render()}};$('playerColor').onchange=e=>{let p=data.players.find(x=>x.id===selected);if(p){snapshot();p.color=e.target.value;persist();render()}};$('playerName').oninput=e=>{let p=data.players.find(x=>x.id===selected);if(p){p.name=e.target.value;persist();render()}};$('undoBtn').onclick=()=>{if(history.length){data=history.pop();if(!data.ball)data.ball={x:450,y:500};persist();select(null)}};$('clearBtn').onclick=()=>{snapshot();data.drawings=[];persist();render()};$('resetBtn').onclick=()=>{if(confirm('現在の配置と描画を初期化しますか？ 保存済みシーンは残ります。')){snapshot();data=init();persist();select(null)}};
+      
+      // ===== サーブ順・交代シート =====
+
+function serveEscape(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[ch]);
+}
+
+function ensureServeData() {
+  const homePlayers = data.players.filter(p => p.team === 'home');
+  const validIds = new Set(homePlayers.map(p => p.id));
+
+  if (!Array.isArray(data.serveOrder)) {
+    data.serveOrder = homePlayers.slice(0, 9).map(p => p.id);
+  }
+
+  // 存在しない選手IDや重複を除去
+  data.serveOrder = data.serveOrder.filter(
+    (id, index, arr) =>
+      validIds.has(id) && arr.indexOf(id) === index
+  );
+
+  // 9人に満たない場合は未登録の選手を補充
+  for (const p of homePlayers) {
+    if (data.serveOrder.length >= 9) break;
+    if (!data.serveOrder.includes(p.id)) {
+      data.serveOrder.push(p.id);
+    }
+  }
+
+  data.serveOrder = data.serveOrder.slice(0, 9);
+
+  if (!Number.isInteger(data.nextServer)) {
+    data.nextServer = 0;
+  }
+
+  data.nextServer = Math.max(
+    0,
+    Math.min(8, data.nextServer)
+  );
+
+  if (!Array.isArray(data.subLog)) {
+    data.subLog = [];
+  }
+}
+
+function servePlayerName(player) {
+  if (!player) return '未登録';
+  return `#${player.number} ${player.name}`;
+}
+
+function renderServeSheet() {
+  ensureServeData();
+
+  const homePlayers = data.players.filter(
+    p => p.team === 'home'
+  );
+
+  const orderPlayers = data.serveOrder.map(id =>
+    homePlayers.find(p => p.id === id)
+  );
+
+  const nextPlayer = orderPlayers[data.nextServer];
+
+  $('serveNextPlayer').textContent =
+    servePlayerName(nextPlayer);
+
+  // サーブ順1〜9番
+  $('serveRows').innerHTML = orderPlayers.map(
+    (player, i) => {
+      const bench = homePlayers.filter(
+        p => !data.serveOrder.includes(p.id)
+      );
+
+      const options = [
+        '<option value="">交代する選手を選択</option>',
+        ...bench.map(p =>
+          `<option value="${serveEscape(p.id)}">` +
+          `${serveEscape(servePlayerName(p))}</option>`
+        )
+      ].join('');
+
+      return `
+        <div class="serve-slot ${i === data.nextServer ? 'next' : ''}"
+             data-player-id="${serveEscape(player.id)}">
+
+          <button type="button"
+                  class="serve-drag-handle"
+                  aria-label="ドラッグして順番を変更">⠿</button>
+
+          <div class="serve-number">${i + 1}</div>
+
+        <div class="serve-player">
+          <span class="serve-jersey">
+            #${serveEscape(player.number)}
+          </span>
+          <span class="serve-name">
+            ${serveEscape(player.name)}
+          </span>
+        </div>
+          <select data-serve-slot="${i}">
+            ${options}
+          </select>
+
+        </div>
+      `;
+    }
+  ).join('');
+
+  // 控え選手一覧
+  const benchPlayers = homePlayers.filter(
+    p => !data.serveOrder.includes(p.id)
+  );
+
+  $('serveBench').innerHTML =
+    `<div class="serve-bench-list">${
+      benchPlayers.length
+        ? benchPlayers.map(p =>
+            serveEscape(servePlayerName(p))
+          ).join('　／　')
+        : '控え選手なし'
+    }</div>`;
+
+  // 交代履歴
+  $('serveHistory').innerHTML =
+    `<div class="serve-history-list">${
+      data.subLog.length
+        ? data.subLog.slice().reverse().map(log =>
+            `<div class="serve-history-item">` +
+            `${serveEscape(log.time)}　` +
+            `${serveEscape(log.message)}</div>`
+          ).join('')
+        : '交代履歴はありません'
+    }</div>`;
+}
+
+// サーブ順のドラッグ入れ替え
+let serveDraggingRow = null;
+
+$('serveRows').addEventListener('pointerdown', event => {
+  const handle = event.target.closest('.serve-drag-handle');
+  if (!handle) return;
+
+  serveDraggingRow = handle.closest('.serve-slot');
+  if (!serveDraggingRow) return;
+
+  event.preventDefault();
+  serveDraggingRow.classList.add('dragging');
+});
+
+document.addEventListener('pointermove', event => {
+  if (!serveDraggingRow) return;
+
+  event.preventDefault();
+
+  const target = document
+    .elementFromPoint(event.clientX, event.clientY)
+    ?.closest('.serve-slot');
+
+  if (!target || target === serveDraggingRow) return;
+
+  const rect = target.getBoundingClientRect();
+  const middle = rect.top + rect.height / 2;
+
+  if (event.clientY < middle) {
+    $('serveRows').insertBefore(
+      serveDraggingRow,
+      target
+    );
+  } else {
+    $('serveRows').insertBefore(
+      serveDraggingRow,
+      target.nextSibling
+    );
+  }
+}, { passive: false });
+
+function finishServeDrag(cancelled = false) {
+  if (!serveDraggingRow) return;
+
+  serveDraggingRow.classList.remove('dragging');
+
+  serveDraggingRow = null;
+
+  if (cancelled) {
+    renderServeSheet();
+    return;
+  }
+
+  const newOrder = Array.from(
+    $('serveRows').querySelectorAll('.serve-slot')
+  ).map(row => row.dataset.playerId);
+
+  const oldOrder = data.serveOrder.slice();
+
+  if (newOrder.join('|') === oldOrder.join('|')) {
+    renderServeSheet();
+    return;
+  }
+
+  // 次のサーバーは同じ選手のまま維持
+  const nextPlayerId = oldOrder[data.nextServer];
+
+  snapshot();
+
+  data.serveOrder = newOrder;
+
+  data.nextServer = newOrder.indexOf(nextPlayerId);
+
+  persist();
+
+  renderServeSheet();
+}
+
+document.addEventListener('pointerup', () => {
+  finishServeDrag(false);
+});
+
+document.addEventListener('pointercancel', () => {
+  finishServeDrag(true);
+});// 交代処理
+$('serveRows').addEventListener('change', event => {
+  const select = event.target.closest('select[data-serve-slot]');
+  if (!select || !select.value) return;
+
+  ensureServeData();
+
+  const slot = Number(select.dataset.serveSlot);
+  const incomingId = select.value;
+  const outgoingId = data.serveOrder[slot];
+
+  const incoming = data.players.find(p => p.id === incomingId);
+  const outgoing = data.players.find(p => p.id === outgoingId);
+
+  if (!incoming || !outgoing) {
+    renderServeSheet();
+    return;
+  }
+
+  // すでにコート内にいる選手は交代対象にしない
+  if (data.serveOrder.includes(incomingId)) {
+    renderServeSheet();
+    return;
+  }
+
+  snapshot();
+
+  // コート上の位置を交換する
+  const oldX = outgoing.x;
+  const oldY = outgoing.y;
+
+  outgoing.x = incoming.x;
+  outgoing.y = incoming.y;
+
+  incoming.x = oldX;
+  incoming.y = oldY;
+
+  // サーブ順の枠は維持して選手だけ交代
+  data.serveOrder[slot] = incomingId;
+
+  const now = new Date();
+  const time = now.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  data.subLog.push({
+    time,
+    message:
+      `${slot + 1}番：${servePlayerName(outgoing)} → ${servePlayerName(incoming)}`
+  });
+
+  // 履歴は直近30件まで
+  data.subLog = data.subLog.slice(-30);
+
+  persist();
+  renderServeSheet();
+  render();
+});
+
+// 次のサーバーへ
+$('serveAdvanceBtn').addEventListener('click', () => {
+  ensureServeData();
+  snapshot();
+
+  data.nextServer = (data.nextServer + 1) % 9;
+
+  persist();
+  renderServeSheet();
+});
+
+// 履歴クリア
+$('serveClearLogBtn').addEventListener('click', () => {
+  ensureServeData();
+  snapshot();
+
+  data.subLog = [];
+
+  persist();
+  renderServeSheet();
+});
+
+// シートを開く
+$('serveBtn').addEventListener('click', () => {
+  renderServeSheet();
+  $('serveSheet').style.display = 'block';
+});
+
+// シートを閉じる
+$('serveCloseBtn').addEventListener('click', () => {
+  $('serveSheet').style.display = 'none';
+});function sceneList(){let el=$('scenes');el.replaceChildren();scenes.forEach((s,i)=>{let row=document.createElement('div');row.className='scene';let load=document.createElement('button');load.textContent=s.name;load.onclick=()=>{snapshot();data=clone(s.data);if(!data.ball)data.ball={x:450,y:500};persist();select(null)};let del=document.createElement('button');del.textContent='×';del.title='削除';del.onclick=()=>{if(confirm('このシーンを削除しますか？')){scenes.splice(i,1);try{localStorage.setItem('vb9-scenes',JSON.stringify(scenes))}catch(e){console.warn(e)}sceneList()}};row.append(load,del);el.append(row)})}$('saveBtn').onclick=()=>{let name=prompt('シーン名',`作戦 ${scenes.length+1}`);if(!name?.trim())return;scenes.push({name:name.trim(),data:clone(data)});try{localStorage.setItem('vb9-scenes',JSON.stringify(scenes))}catch(e){console.warn(e)}sceneList()};$('exportBtn').onclick=()=>{let copy=svg.cloneNode(true);copy.setAttribute('width','900');copy.setAttribute('height','1000');copy.setAttribute('viewBox','0 0 900 1000');copy.querySelector('#preview')?.remove();let xml=new XMLSerializer().serializeToString(copy),blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();img.onload=()=>{let c=document.createElement('canvas');c.width=1800;c.height=2000;let ctx=c.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);c.toBlob(b=>{let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='volleyball9-board.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)},'image/png')};img.onerror=()=>{URL.revokeObjectURL(url);alert('画像出力に失敗しました')};img.src=url};sceneList();render()})();
+</script></body></html>
