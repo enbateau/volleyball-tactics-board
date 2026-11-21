@@ -4907,6 +4907,22 @@
 
         // 入力内容を保存
         const saveField = (input, field) => {
+
+          // Enterで編集を確定
+          input.addEventListener('keydown', event => {
+
+            if (event.key !== 'Enter') return;
+
+            // 日本語変換中はEnterを変換確定に使う
+            if (event.isComposing || event.keyCode === 229) return;
+
+            event.preventDefault();
+
+            // フォーカスを外して既存の保存処理を実行
+            input.blur();
+
+          });
+
           input.addEventListener('change', () => {
             const oldValue = player[field];
             const value = input.value.trim();
@@ -5199,6 +5215,25 @@
           data.entryMemos[player.id] = memoInput.value;
           persist();
         });
+        // Enterで入力内容を確定
+        [nameInput, displayNameInput, numberInput, memoInput]
+          .forEach(input => {
+
+            input.addEventListener('keydown', event => {
+
+              if (event.key !== 'Enter') return;
+
+              // 日本語変換中は変換確定を優先
+              if (event.isComposing || event.keyCode === 229) return;
+
+              event.preventDefault();
+
+              // フォーカスを外して既存の保存処理を実行
+              input.blur();
+
+            });
+
+          });
 
         // エントリー選択
         checkbox.addEventListener('change', () => {
@@ -5302,12 +5337,31 @@
     });
     // ===== 選手名簿のキーボード入力 =====
 
-    // 選手名でReturn → 背番号へ
+    // 選手名でReturn → 変換確定後に表示名へ
     $('teamRosterName').addEventListener('keydown', event => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        $('teamRosterUniformNumber').focus();
-      }
+
+      if (event.key !== 'Enter') return;
+
+      // 日本語変換中のEnterは変換確定に使う
+      if (event.isComposing || event.keyCode === 229) return;
+
+      event.preventDefault();
+
+      $('teamRosterDisplayName').focus();
+
+    });
+    // 表示名でReturn → 変換確定後に固有番号へ
+    $('teamRosterDisplayName').addEventListener('keydown', event => {
+
+      if (event.key !== 'Enter') return;
+
+      // 日本語変換中のEnterは変換確定に使う
+      if (event.isComposing || event.keyCode === 229) return;
+
+      event.preventDefault();
+
+      $('teamRosterUniformNumber').focus();
+
     });
 
     // 背番号でReturn → 追加ボタンへ
